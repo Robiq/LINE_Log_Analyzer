@@ -9,7 +9,7 @@ require 'date'
 
 #TODO
 
-# Gather all unique words pr. sender
+# Gather unique # of words pr. sender
 # Find most used word pr. sender
 # Find least used word pr. sender
 # Gather # of stamps pr sender
@@ -54,30 +54,64 @@ end
 
 def add_sender_data(sender, datetime, ent, sender_message)
 	if sender_message[sender] == nil
-		sender_message[sender] = [[datetime, ent.LINE.msg, ent.LINE.type]]
+		sender_message[sender] = [{date: datetime, msg:ent.LINE.msg, type: ent.LINE.type}]
 	else
-		sender_message[sender].push([datetime, ent.LINE.msg, ent.LINE.type])
+		sender_message[sender].push({date: datetime, msg:ent.LINE.msg, type: ent.LINE.type})
 	end
 end
 
 def add_word_data(word, words)
 	word = word.downcase
-	puts "Word lower: " + word
-	word.gsub!(/[^0-9A-Za-z]/, '')
-	puts "Word strip: " + word
+	#puts "Word lower: " + word
+	word.gsub!(/[\(\)]/, ' ')
+	#puts word
+	word.gsub!(/[^0-9A-Za-z ]/, '')
+	#puts "Word strip: " + word
 
-	# todo - remove filler word. (the, this, that...etc)
+	#Handle spaces added as part of cleaning
+	word = word.split
 
-	if words[word] == nil
-		words[word] = 1
-	else
-		words[word] += 1
+	for w in word
+		# todo - remove filler word. (the, this, that...etc)
+		ignore_words = ["to","of","in","for","on","with","at","by","from","up","about","into","over","after","Others","the","and","a","that","I","it","not","he","as","you","this","but","his","they","her","she","or","an","will","my","one","all","would","there","their"]
+		if ignore_words.include? w
+			return
+		end
+
+		if words[w] == nil
+			words[w] = 1
+		else
+			words[w] += 1
+		end
 	end
+end
+
+def analyze_pr_sender(data)
+	#Data
+	# Name, [ent, ent]
+	# ent = [datetime, msg, type]
+	
+	#Res
+	# res[usr] = {msg_stats: {msg_nr, stamp_nr, photo_nr}, word_stats: {uniq, most, least}, reply_time}
+	res = Hash.new()
+
+	#puts data
+	data.each_key do |user|
+		#puts "Key: " + user
+		#puts data[user]
+		res[user] = {msg_stats: {msg_nr:0, stamp_nr:0, photo_nr:0}, word_stats: {uniq:0, most:0, least:0}, reply_time:nil}
+		data[user].each do |msg_data|
+			puts msg_data
+		end
+	end
+	#for user in data
+	#	puts user
+	#end
 end
 
 def analyze_lines(chat)
 	msg_amt = chat.length
-	puts msg_amt
+	#puts msg_amt
 	# words[word] = frequency
 	words = {}
 	sender_message = Hash.new()
@@ -105,8 +139,6 @@ def analyze_lines(chat)
 			end
 		end
 
-
-
 		if ent.LINE.type == "s"
 			stickers += 1
 		elsif ent.LINE.type == "p"
@@ -115,6 +147,11 @@ def analyze_lines(chat)
 			chat_txt += 1
 		end
 	end
+
+	analyze_pr_sender(sender_message)
+	
+
+	puts "---------------------- OUTPUT ---------------------------"
 	puts "Messages: "
 	puts sender_message
 	puts "Words: "
@@ -155,7 +192,7 @@ else
 			# Get date
 			if line.start_with?('201')
 				date_raw = line.chomp()
-				puts "Date: "+date_raw
+				#puts "Date: "+date_raw
 				date = date_raw.match(DATE_FORMAT) { |m| DATE_STR.new(*m.captures) }
 			
 			#Multiline support handling
