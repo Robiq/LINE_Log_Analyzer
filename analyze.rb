@@ -1,24 +1,13 @@
 require 'date'
-#Done
-
-# Get # of messages sent
-# Gather # of stamps sent
-# Gather # of images sent
-# Find most used word(s)
-# Find least used word(s)
-# Gather # of stamps pr sender
-# Gather # of images pr. sender
-# Gather msg pr. sender
 
 #TODO
 
-# Gather unique # of words pr. sender
-# Find most used word pr. sender
-# Find least used word pr. sender
 # Find message distribution (% sent by each participant)
-
 # If text contains "?" find response time
+	# Implementation + dateobjects
+# Web interface / presentation
 
+# Read in the file in lines
 def readfile(filename)
 	return IO.readlines(filename)
 end
@@ -26,33 +15,40 @@ end
 # TIMESTAMP [TAB] SENDER_FIRSTNAME [SPACE] SENDER_LASTNAME [SPACE] MESSAGE
 # TIMESTAMP = 1:23 OR 12:34
 def extract(line)
-	#puts "LINE: "+line
+
 	line = line.chomp()
+	
+	# parse line
 	#https://www.rubyguides.com/2015/06/ruby-regex/
 	parse_line = line.match(FORMAT) { |m| LINE.new(*m.captures, "m") }
-	#puts parse_line
+	
+	# set correct message type
 	if parse_line.msg == "[Photo]"
 		parse_line.type = "p"
 	elsif parse_line.msg == "[Sticker]"
 		parse_line.type = "s"
 	end
+
 	return parse_line
 end
 
 def find_datetime(ent)
 	format = "%Y/%m/%d-%a %k:%M"
+	# set date & time from parsed data
 	date = ent.date.year+"/"+ent.date.month+"/"+ent.date.day+"-"+ent.date.weekday
 	time = ent.LINE.time
+
+	# Handle weird japanese clock issue (24 == 00), for correct parsing
 	if time[0..1] == "24"
 		time[0..1] = "00"
 	end
-	#puts date
-	#puts time
-	#puts date+" "+time
+
+	# Parse date and time to datetime object
 	return DateTime.strptime(date+" "+time, format)
 end
 
 def add_sender_data(sender, datetime, ent, sender_message)
+	# If sender doesn't exist, create the first entry in the senders array of messages, else append it.
 	if sender_message[sender] == nil
 		sender_message[sender] = [{date: datetime, msg:ent.LINE.msg, type: ent.LINE.type}]
 	else
@@ -61,23 +57,26 @@ def add_sender_data(sender, datetime, ent, sender_message)
 end
 
 def add_word_data(word, words)
+
 	word = word.downcase
-	#puts "Word lower: " + word
+	# replace () with space
 	word.gsub!(/[\(\)]/, ' ')
-	#puts word
+
+	# remove any special characters
 	word.gsub!(/[^0-9A-Za-z ]/, '')
-	#puts "Word strip: " + word
 
 	#Handle spaces added as part of cleaning
 	word = word.split
-
+	# iterate over words
 	for w in word
-		# todo - remove filler word. (the, this, that...etc)
+		# remove filler word. (the, this, that...etc)
 		ignore_words = ["to","of","in","for","on","with","at","by","from","up","about","into","over","after","others","the","and","a","that","I","it","not","he","as","you","this","but","his","they","her","she","or","an","will","my","one","all","would","there","their", "i", "am", "ourselves", "hers", "between", "yourself", "but", "again", "there", "about", "once", "during", "out", "very", "having", "with", "they", "own", "an", "be", "some", "for", "do", "its", "yours", "such", "into", "of", "most", "itself", "other", "off", "is", "s", "am", "or", "who", "as", "from", "him", "each", "the", "themselves", "until", "below", "are", "we", "these", "your", "his", "through", "don", "nor", "me", "were", "her", "more", "himself", "this", "down", "should", "our", "their", "while", "above", "both", "up", "to", "ours", "had", "she", "all", "no", "when", "at", "any", "before", "them", "same", "and", "been", "have", "in", "will", "on", "does", "yourselves", "then", "that", "because", "what", "over", "why", "so", "can", "did", "not", "now", "under", "he", "you", "herself", "has", "just", "where", "too", "only", "myself", "which", "those", "i", "after", "few", "whom", "t", "being", "if", "theirs", "my", "against", "a", "by", "doing", "it", "how", "further", "was", "here", "than", "ok"]
+		# if found, go to next word
 		if ignore_words.include? w
-			return
+			next
 		end
 
+		# if first time, set count to 1, else increment by one
 		if words[w] == nil
 			words[w] = 1
 		else
@@ -87,17 +86,21 @@ def add_word_data(word, words)
 end
 
 def extract_word_stats(words, result)
+	
+	# Unique words
 	result[:uniq] = words.length
+	
+	# Sorted list of how many times each word is used
 	sorted = words.each_with_object({}) { |(k,v),g| (g[v] ||= []) << k }
+	
+	# How many times is most used word used
 	high = sorted.max_by{|k,v| k}[0]
-	#puts sorted
-	#puts high
-	#puts sorted[1]
+
+	# Save results 
 	result[:most_nr] = high
 	result[:most] = sorted[high]
 	result[:least] = sorted[1]
 	result[:sorted] = sorted
-	#puts result[:least]
 end
 
 def analyze_pr_sender(data)
@@ -109,14 +112,15 @@ def analyze_pr_sender(data)
 	# res[usr] = {msg_stats: {msg_nr, stamp_nr, photo_nr}, word_stats: {uniq, most, least}, reply_time}
 	res = Hash.new()
 
-	#puts data
+	# Go through all messages per sender 
 	data.each_key do |user|
-		#puts "Key: " + user
-		#puts data[user]
 		wordlist = {}
 		res[user] = {msg_stats: {text_nr:0, stamp_nr:0, photo_nr:0}, word_stats: {uniq:0, most:[], most_nr:0, least:[], sorted:nil}, reply_time:nil}
+		
+		# Go through messages for current sender
 		data[user].each do |msg_data|
-			#puts msg_data
+			
+			# Analyse message types sent
 			if msg_data[:type] == "p"
 				res[user][:msg_stats][:photo_nr] += 1
 			elsif msg_data[:type] == "s"
@@ -134,14 +138,15 @@ def analyze_pr_sender(data)
 
 		end
 
+		# Get word stats for current user
 		extract_word_stats(wordlist, res[user][:word_stats])
 
-		# User stats
-		puts "------------------ User: " + user + " --------------------------"
-		puts "******** Word stats ********"
-		puts "Unique words: " + res[user][:word_stats][:uniq].to_s
-		puts "Most used words were used " + res[user][:word_stats][:most_nr].to_s + " times."
-		puts "Most used words: " + res[user][:word_stats][:most].join(", ")
+		# Print User stats
+		#puts "------------------ User: " + user + " --------------------------"
+		#puts "******** Word stats ********"
+		#puts "Unique words: " + res[user][:word_stats][:uniq].to_s
+		#puts "Most used words were used " + res[user][:word_stats][:most_nr].to_s + " times."
+		#puts "Most used words: " + res[user][:word_stats][:most].join(", ")
 		#puts "Words used only once: " + res[user][:word_stats][:least].join(", ")
 		#puts "******** Message stats ********"
 		#puts "Stamps: " + res[user][:msg_stats][:stamp_nr].to_s
@@ -149,32 +154,40 @@ def analyze_pr_sender(data)
 		#puts "Text: " + res[user][:msg_stats][:text_nr].to_s
 		#puts "Total messages: " + (res[user][:msg_stats][:stamp_nr] + res[user][:msg_stats][:photo_nr] + res[user][:msg_stats][:text_nr]).to_s + "\n"
 	end
-	#for user in data
-	#	puts user
-	#end
+
+	return res
 end
 
-def analyze_reply_time(one, two)
+def get_reply_time(user, reply_time, q_time)
+	#find diff between q_time and reply_time (use datetime object?)
+	# TODO
 	return
+end
+
+def analyze_reply_time(avg_time, new_reply_time)
+	#find new average reply time
+	if avg_time == nil
+		return new_reply_time
+	end
+	# Need to do this operation using time objects
+	# TODO
+	avg_time_new = (avg_time + new_reply_time) / 2
+	return avg_time_new
 end
 
 def analyze_lines(chat)
 	msg_amt = chat.length
-	#puts msg_amt
-	# words[word] = frequency
 	words = {}
 	sender_message = Hash.new()
 	stickers = 0
 	images = 0
 	chat_txt = 0
+	avg_reply_time = {}
 
-	#Plan:
-	# Get data for all messages
-	# Get data for each participant
-	# Compare as verification
-		# if matching, remove data for all messages
+	question_struct = Struct.new(:sender, :datetime)
+	question = nil
+	
 	for ent in chat
-		#puts ent
 		datetime = find_datetime(ent)
 		sender = ent.LINE.sender
 		
@@ -188,7 +201,7 @@ def analyze_lines(chat)
 			end
 		end
 
-
+		# Count # of messages pr type
 		if ent.LINE.type == "s"
 			stickers += 1
 		elsif ent.LINE.type == "p"
@@ -197,9 +210,16 @@ def analyze_lines(chat)
 			chat_txt += 1
 		end
 		
-		# Need forward analysis (next message not from sender == calculate reply time and recalculate avg time)
-		if ent.LINE.msg.include? "?"
-			analyze_reply_time(sender, datetime)
+		# Find reply time for current question and new average
+		if question != nil and question.sender != sender
+			reply_time = get_reply_time(sender, datetime, question.datetime)
+			avg_repl_time[sender] = analyze_reply_time(avg_repl_time[sender], reply_time)
+			question = nil
+		end
+
+		# Set question asked
+		if ent.LINE.msg.include? "?" and question == nil
+			question = question_struct.new(sender, datetime)
 		end
 	end
 	
@@ -207,16 +227,18 @@ def analyze_lines(chat)
 	#Extract data for all users
 	extract_word_stats(words, word_stats)
 
-	analyze_pr_sender(sender_message)
+	res = analyze_pr_sender(sender_message)
 
-	#puts "---------------------- OUTPUT ---------------------------"
 	#puts "Messages: "
 	#puts sender_message
 	#puts "Words: "
 	#puts words
-	#puts "Stickers: " + stickers.to_s
-	#puts "Images: " + images.to_s
-	#puts "Chat messages: " + chat_txt.to_s
+
+	#puts "------------------ Conversation stats --------------------------"
+	#puts "Total stickers sent: " + stickers.to_s
+	#puts "Total images sent: " + images.to_s
+	#puts "Total text messages sent: " + chat_txt.to_s
+	#puts "Total messages sent: " + msg_amt
 end
 
 
@@ -238,36 +260,24 @@ else
 		# Jump to beginning of history
 		filecontents.shift(3)
 		for line in filecontents
-			# Debug
-			#if date == nil
-			#	puts line
-			#	exit
-			#end
-			#puts line
-		#	puts line[4].ord
-			
 			# Get date
 			if line.start_with?('201')
 				date_raw = line.chomp()
 				#puts "Date: "+date_raw
 				date = date_raw.match(DATE_FORMAT) { |m| DATE_STR.new(*m.captures) }
-			
+
 			#Multiline support handling
 			elsif not line.start_with?(/\d{1,2}:\d{2}/) and not /\S/ !~ line
 				chat[-1].LINE.msg += "\n"+line.chomp()
-				#puts chat[-1]
-				#puts chat[-1].LINE.msg
 
 			# Extract data
 			elsif not /\S/ !~ line
 				tmp = ChatEntr.new(extract(line), date)
-				#puts tmp
 				chat.push(tmp)
 			end
 		end
-		#puts "here"
-		#puts date.year.to_i - 2
-		#puts chat
+
 		analyze_lines(chat)
+
 	end
 end
