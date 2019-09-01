@@ -6,15 +6,15 @@ require 'date'
 # Gather # of images sent
 # Find most used word(s)
 # Find least used word(s)
+# Gather # of stamps pr sender
+# Gather # of images pr. sender
+# Gather msg pr. sender
 
 #TODO
 
 # Gather unique # of words pr. sender
 # Find most used word pr. sender
 # Find least used word pr. sender
-# Gather # of stamps pr sender
-# Gather # of images pr. sender
-# Gather msg pr. sender
 # Find message distribution (% sent by each participant)
 
 # If text contains "?" find response time
@@ -99,14 +99,33 @@ def analyze_pr_sender(data)
 	data.each_key do |user|
 		#puts "Key: " + user
 		#puts data[user]
-		res[user] = {msg_stats: {msg_nr:0, stamp_nr:0, photo_nr:0}, word_stats: {uniq:0, most:0, least:0}, reply_time:nil}
+		res[user] = {msg_stats: {text_nr:0, stamp_nr:0, photo_nr:0}, word_stats: {uniq:0, most:0, least:0}, reply_time:nil}
 		data[user].each do |msg_data|
-			puts msg_data
+			#puts msg_data
+			if msg_data[:type] == "p"
+				res[user][:msg_stats][:photo_nr] += 1
+			elsif msg_data[:type] == "s"
+				res[user][:msg_stats][:stamp_nr] += 1
+			else
+				res[user][:msg_stats][:text_nr] += 1
+			end
+			
+						
+
 		end
+		puts "Stats for user: " + user
+		puts "Stamps: " + res[user][:msg_stats][:stamp_nr].to_s
+		puts "Photos: " + res[user][:msg_stats][:photo_nr].to_s
+		puts "Text: " + res[user][:msg_stats][:text_nr].to_s
+		puts "Total messages: " + (res[user][:msg_stats][:stamp_nr] + res[user][:msg_stats][:photo_nr] + res[user][:msg_stats][:text_nr]).to_s + "\n"
 	end
 	#for user in data
 	#	puts user
 	#end
+end
+
+def analyze_reply_time(one, two)
+	return
 end
 
 def analyze_lines(chat)
@@ -146,20 +165,23 @@ def analyze_lines(chat)
 		else
 			chat_txt += 1
 		end
+		
+		# Need forward analysis (next message not from sender == calculate reply time and recalculate avg time)
+		if ent.LINE.msg.include? "?"
+			analyze_reply_time(sender, datetime)
+		end
 	end
 
 	analyze_pr_sender(sender_message)
-	
 
-	puts "---------------------- OUTPUT ---------------------------"
-	puts "Messages: "
-	puts sender_message
-	puts "Words: "
-	puts words
-
-	puts "Stickers: " + stickers.to_s
-	puts "Images: " + images.to_s
-	puts "Chat messages: " + chat_txt.to_s
+	#puts "---------------------- OUTPUT ---------------------------"
+	#puts "Messages: "
+	#puts sender_message
+	#puts "Words: "
+	#puts words
+	#puts "Stickers: " + stickers.to_s
+	#puts "Images: " + images.to_s
+	#puts "Chat messages: " + chat_txt.to_s
 end
 
 
