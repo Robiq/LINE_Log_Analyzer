@@ -1,0 +1,26 @@
+Plan:
+	 Get data for all messages
+	 Get data for each participant
+	 Compare as verification
+		 if matching, remove data for all messages
+
+Done
+
+ Get # of messages sent
+ Gather # of stamps sent
+ Gather # of images sent
+ Find most used word(s)
+ Find least used word(s)
+ Gather # of stamps pr sender
+ Gather # of images pr. sender
+ Gather msg pr. sender
+ Gather unique  of words pr. sender
+ Find most used word pr. sender
+ Find least used word pr. sender
+
+TODO
+
+ Find message distribution (% sent by each participant)
+ If text contains "?" find response time
+	 Implementation + dateobjects
+ Web interface / presentation
