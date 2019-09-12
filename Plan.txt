@@ -17,10 +17,13 @@ Done
  Gather unique  of words pr. sender
  Find most used word pr. sender
  Find least used word pr. sender
-
-TODO
-
  Find message distribution (% sent by each participant)
  If text contains "?" find response time
 	 Implementation + dateobjects
+ Find general response time (dumb = just calculate)
+ Find response time for intervals < 12h
+
+TODO
+ Troubleshoot
+ Make pretty cli printout
  Web interface / presentation

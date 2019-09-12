@@ -1,10 +1,6 @@
 require 'date'
+require 'time'
 
-#TODO
-
-# Find message distribution (% sent by each participant)
-# If text contains "?" find response time
-	# Implementation + dateobjects
 # Web interface / presentation
 
 # Read in the file in lines
@@ -115,11 +111,14 @@ def analyze_pr_sender(data)
 	# Go through all messages per sender 
 	data.each_key do |user|
 		wordlist = {}
-		res[user] = {msg_stats: {text_nr:0, stamp_nr:0, photo_nr:0}, word_stats: {uniq:0, most:[], most_nr:0, least:[], sorted:nil}, reply_time:nil}
+		res[user] = {msg_stats: {text_nr:0, stamp_nr:0, photo_nr:0, tot_nr:0}, word_stats: {uniq:0, most:[], most_nr:0, least:[], sorted:nil}, reply_time:nil}
 		
 		# Go through messages for current sender
 		data[user].each do |msg_data|
 			
+			# Count messages
+			res[user][:msg_stats][:tot_nr] += 1
+
 			# Analyse message types sent
 			if msg_data[:type] == "p"
 				res[user][:msg_stats][:photo_nr] += 1
@@ -158,20 +157,30 @@ def analyze_pr_sender(data)
 	return res
 end
 
-def get_reply_time(user, reply_time, q_time)
-	#find diff between q_time and reply_time (use datetime object?)
-	# TODO
-	return
+def get_reply_time(reply_time, q_time)
+	#find diff between q_time and reply_time in seconds
+	#puts "reply time"
+	#puts reply_time
+	#puts q_time
+
+	diff = reply_time.to_time.to_i - q_time.to_time.to_i
+	#puts diff
+	return diff
 end
 
 def analyze_reply_time(avg_time, new_reply_time)
-	#find new average reply time
+	#find response time for first reply
 	if avg_time == nil
 		return new_reply_time
 	end
-	# Need to do this operation using time objects
-	# TODO
+
+	# Average time in seconds
+	#puts "avg time"
+	#puts avg_time
+	#puts new_reply_time
 	avg_time_new = (avg_time + new_reply_time) / 2
+	#puts avg_time_new
+	#exit
 	return avg_time_new
 end
 
@@ -182,7 +191,14 @@ def analyze_lines(chat)
 	stickers = 0
 	images = 0
 	chat_txt = 0
+	#
+	prev_sender = nil
+	# DateTime objects
+	prev_msgtime_dumb = nil
+	prev_msgtime_short = nil
 	avg_reply_time = {}
+	avg_dumb_reply_time = {}
+	avg_short_reply_time = {}
 
 	question_struct = Struct.new(:sender, :datetime)
 	question = nil
@@ -210,10 +226,13 @@ def analyze_lines(chat)
 			chat_txt += 1
 		end
 		
+
+		# TODO Debug and check following time calculating sections 
+
 		# Find reply time for current question and new average
 		if question != nil and question.sender != sender
-			reply_time = get_reply_time(sender, datetime, question.datetime)
-			avg_repl_time[sender] = analyze_reply_time(avg_repl_time[sender], reply_time)
+			reply_time = get_reply_time(datetime, question.datetime)
+			avg_reply_time[sender] = analyze_reply_time(avg_reply_time[sender], reply_time)
 			question = nil
 		end
 
@@ -221,6 +240,39 @@ def analyze_lines(chat)
 		if ent.LINE.msg.include? "?" and question == nil
 			question = question_struct.new(sender, datetime)
 		end
+
+
+		# dumb logic
+		if prev_sender != nil && prev_sender != sender
+			reply_time = get_reply_time(datetime, prev_msgtime_dumb)
+			avg_dumb_reply_time[sender] = analyze_reply_time(avg_dumb_reply_time[sender], reply_time)
+			
+			#Reset timer
+			prev_msgtime_dumb = datetime
+		end
+
+		# short logic
+		if prev_sender != nil && prev_sender != sender
+			reply_time = get_reply_time(datetime, prev_msgtime_short)
+			# If reply within 12 hours
+						   #min #hr  #12 hrs
+			if reply_time < (60 * 60 * 12)
+				avg_short_reply_time[sender] = analyze_reply_time(avg_short_reply_time[sender], reply_time)
+			end
+
+			#Reset timer
+			prev_msgtime_short = datetime	
+		end
+
+		# Set previous sender
+		prev_sender = sender
+		
+		# Set previous time dumb & short, if first run
+		if prev_msgtime_dumb == nil
+			prev_msgtime_dumb = datetime
+			prev_msgtime_short = datetime
+		end
+			
 	end
 	
 	word_stats = {uniq:0, most:[], most_nr:0, least:[], sorted:nil}
@@ -229,16 +281,36 @@ def analyze_lines(chat)
 
 	res = analyze_pr_sender(sender_message)
 
+	# Calculate total distribution of messages
+	percent_dist = {}
+	#puts msg_amt
+	res.each_key do |user|
+		percent_dist[user] = ((res[user][:msg_stats][:tot_nr].to_f / msg_amt )* 100).to_f
+		
+		#puts user + " sent " + percent_dist[user].round.to_s + "\% of all messages (" + res[user][:msg_stats][:tot_nr].to_s + "/" + msg_amt.to_s + ")"
+
+		#puts res[user][:msg_stats][:tot_nr]
+		#puts percent_dist[user]
+	end
 	#puts "Messages: "
 	#puts sender_message
 	#puts "Words: "
 	#puts words
+
+	#Todo finish nice printout
 
 	#puts "------------------ Conversation stats --------------------------"
 	#puts "Total stickers sent: " + stickers.to_s
 	#puts "Total images sent: " + images.to_s
 	#puts "Total text messages sent: " + chat_txt.to_s
 	#puts "Total messages sent: " + msg_amt
+	res.each_key do |user|
+		#puts "------------------ Stats pr. User --------------------------"
+		#puts user + " sent " + percent_dist[user].round.to_s + "\% of all messages (" + res[user][:msg_stats][:tot_nr].to_s + "/" + msg_amt.to_s + ")"
+		
+		#puts "------------------ Reply Time stats --------------------------"
+		#puts 
+	end
 end
 
 
