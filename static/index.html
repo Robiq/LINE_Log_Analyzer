@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <title>Chat analyzer</title>
+
+  <!-- Bootstrap core CSS -->
+  <link href="static/bootstrap.min.css" type="text/css" rel="stylesheet">
+
+  <!-- Custom styles for this template -->
+  <link href="static/heroic-features.css" type="text/css" rel="stylesheet">
+
+  <script>
+    function init(){
+      document.getElementById('fileInput').addEventListener('change', handleFileSelect, false);
+    }
+  </script>
+
+</head>
+
+<body onload="init()">
+  <!-- Navigation -->
+  <!--
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="#">Start Bootstrap</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarResponsive">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item active">
+            <a class="nav-link" href="#">Home
+              <span class="sr-only">(current)</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">About</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Services</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Contact</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav> -->
+
+  <!-- Page Content -->
+  <div class="container">
+
+    <!-- Jumbotron Header -->
+    <header class="jumbotron my-4">
+      <h1 class="display-3">LINE Chat analyzer!</h1>
+      <br>
+      <p class="lead"><b>Analyze your LINE chat history with your best friend(s)!</b> <br><br>
+        1. Open the LINE chat room from which you want to get the history <br>
+        2. Press the down arrow in the top right corner, to open the drop-down menu <br>
+        3. Press <i>Settings</i> <br>
+        4. Press <i>Export chat history</i> <br>
+        5. Save the file somewhere <br>
+        6. Upload the file using the button below <br>
+        7. Select how many hours can pass between the initial message and the response, before it is dropped from the <i>Average answer length (2)</i> statistic.<br>
+      </p>
+      <div class="row text-center">
+        <div class="col-lg-6 col-md-6 mb-4">
+          <p>Drop answer from stats after <span id="nr"></span> hours</p>
+          <input id="nrslide" type="range" name="hours" min="0" max="23"><br>
+        </div>
+        <div class="col-lg-6 col-md-6 mb-4">
+          <input  style="text-align: left;"id="fileInput" type="file" name="uploadField" />
+        </div>
+        <div class="col-lg-12 col-md-12 mb-4">
+          <button id ="btn" onclick="submit()" class="btn btn-primary btn-lg" disabled>Submit history!</button>
+        </div>
+
+      <form id="chatHistory" name="chatHistory" method="post">
+        <input type="text" id="data" hidden>
+      </form>
+    </header>
+
+    <!-- Page Features -->
+    <div class="row text-center">
+      <div class="col-lg-3 col-md-6 mb-4">
+      </div>
+    <!--
+
+      <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card h-100">
+          <img class="card-img-top" src="http://placehold.it/500x325" alt="">
+          <div class="card-body">
+            <h4 class="card-title">Card title</h4>
+            <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sapiente esse necessitatibus neque.</p>
+          </div>
+          <div class="card-footer">
+            <a href="#" class="btn btn-primary">Find Out More!</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card h-100">
+          <img class="card-img-top" src="http://placehold.it/500x325" alt="">
+          <div class="card-body">
+            <h4 class="card-title">Card title</h4>
+            <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Explicabo magni sapiente, tempore debitis beatae culpa natus architecto.</p>
+          </div>
+          <div class="card-footer">
+            <a href="#" class="btn btn-primary">Find Out More!</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card h-100">
+          <img class="card-img-top" src="http://placehold.it/500x325" alt="">
+          <div class="card-body">
+            <h4 class="card-title">Card title</h4>
+            <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Sapiente esse necessitatibus neque.</p>
+          </div>
+          <div class="card-footer">
+            <a href="#" class="btn btn-primary">Find Out More!</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card h-100">
+          <img class="card-img-top" src="http://placehold.it/500x325" alt="">
+          <div class="card-body">
+            <h4 class="card-title">Card title</h4>
+            <p class="card-text">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Explicabo magni sapiente, tempore debitis beatae culpa natus architecto.</p>
+          </div>
+          <div class="card-footer">
+            <a href="#" class="btn btn-primary">Find Out More!</a>
+          </div>
+        </div>
+      </div>
+    -->
+    </div>
+    <!-- /.row -->
+
+  </div>
+  <!-- /.container -->
+
+  <!-- Footer -->
+  <footer class="py-5 fixed-bottom bg-dark"  style="padding-bottom: 2rem!important; padding-top: 2rem!important;">
+    <div class="container">
+      <p class="m-0 text-center text-white"><a href="https://robinlunde.com">Copyright &copy; robinlunde.com 2019</a></p>
+    </div>
+    <!-- /.container -->
+  </footer>
+
+  <!-- Bootstrap core JavaScript -->
+  <script src="static/jquery.min.js"></script>
+  <script src="static/bootstrap.bundle.min.js"></script>
+  <script type="text/javascript">
+    var slider = document.getElementById("nrslide");
+    var output = document.getElementById("nr");
+    output.innerText = slider.value;
+
+    slider.oninput = function() {
+      output.innerText = this.value;
+    }
+  </script>
+  <script type="text/javascript">
+     function handleFileSelect(event){
+      const reader = new FileReader()
+      reader.onload = handleFileLoad;
+      reader.readAsText(event.target.files[0])
+    }
+
+    function handleFileLoad(event){
+      //console.log(event);
+      document.getElementById('data').textContent = event.target.result;
+      document.getElementById('btn').disabled = false
+    }
+
+    function submit(){
+      let action = document.getElementById('chatHistory').action
+      action = "/upload/"
+      //console.log(action)
+      action += document.getElementById("nrslide").value
+      //console.log(action)
+      document.getElementById('chatHistory').action = action
+      document.getElementById('chatHistory').submit()
+    }
+  </script>
+</body>
+
+</html>

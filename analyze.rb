@@ -178,15 +178,45 @@ def get_string_time(int_time)
 	return str
 end
 
-def analyze_lines(chat)
+def printout(words, stickers, images, chat_txt, msg_amt, res, percent_dist, avg_reply_time, avg_short_reply_time, avg_dumb_reply_time, wihtin_hr)
+	puts "********************* Conversation stats *********************"
+	puts "Total unique words sent: ".ljust(30) + words.length.to_s.rjust(5)
+	puts "Total stickers sent: ".ljust(30) + stickers.to_s.rjust(5)
+	puts "Total images sent: ".ljust(30) + images.to_s.rjust(5)
+	puts "Total text messages sent: ".ljust(30) + chat_txt.to_s.rjust(5)
+	puts "Total messages sent: ".ljust(30) + msg_amt.to_s.rjust(5)
+	
+	puts "\n********************* Stats pr. User *********************\n"
+	#For each user
+	res.each_key do |user|
+		# Print User stats
+		puts "\n--------------------- " + user + " ---------------------\n"
+		puts user + " sent " + percent_dist[user].round.to_s + "\% of all messages (" + res[user][:msg_stats][:tot_nr].to_s + "/" + msg_amt.to_s + ")"
+		puts "++++++++++++ Word stats ++++++++++++"
+		puts "Unique words: ".ljust(25) + res[user][:word_stats][:uniq].to_s.rjust(10)
+		puts "Most used words: ".ljust(25) + res[user][:word_stats][:most].first(10).join(", ").rjust(10)
+		puts "Were used ".ljust(28) + res[user][:word_stats][:most_nr].to_s + " times"
+		puts "Words used only once:"
+		puts res[user][:word_stats][:least].first(10).join(", ")
+		puts "\n++++++++++++ Message stats ++++++++++++"
+		puts "Stamps: ".ljust(10) + res[user][:msg_stats][:stamp_nr].to_s.rjust(5)
+		puts "Photos: ".ljust(10) + res[user][:msg_stats][:photo_nr].to_s.rjust(5)
+		puts "Text: ".ljust(10) + res[user][:msg_stats][:text_nr].to_s.rjust(5)
+		puts "Total: ".ljust(10) + (res[user][:msg_stats][:stamp_nr] + res[user][:msg_stats][:photo_nr] + res[user][:msg_stats][:text_nr]).to_s.rjust(5) + "\n"
+		puts "\n++++++++++++ Reply Time stats ++++++++++++\n"
+		puts "Average reply time (msg w/ ?)".ljust(40) + get_string_time(avg_reply_time[user]).rjust(5)
+		puts ("Average reply time (rs %dhr)" % wihtin_hr).ljust(40) + get_string_time(avg_short_reply_time[user]).rjust(5)
+		puts "Average reply time (no rs)".ljust(40) + get_string_time(avg_dumb_reply_time[user]).rjust(5)
+	end
+end
+
+def analyze_lines(chat, within_hr=6, show=true)
 	msg_amt = chat.length
 	words = {}
 	sender_message = Hash.new()
 	stickers = 0
 	images = 0
 	chat_txt = 0
-	# Only count messages within x hrs
-	wihtin_hr = 2
 	prev_sender = nil
 	# DateTime objects
 	prev_msgtime_dumb = nil
@@ -252,7 +282,7 @@ def analyze_lines(chat)
 			reply_time = get_reply_time(datetime, prev_msgtime_short)
 			# If reply within 12 hours
 						   #min #hr  #12 hrs
-			if reply_time < (60 * 60 * wihtin_hr)
+			if reply_time < (60 * 60 * within_hr)
 				avg_short_reply_time[sender] = analyze_reply_time(avg_short_reply_time[sender], reply_time)
 			#else
 			#	puts "HAPPENS for: " + sender + " reply_time: " + reply_time.to_s
@@ -286,35 +316,35 @@ def analyze_lines(chat)
 
 	end
 
-	puts "********************* Conversation stats *********************"
-	puts "Total unique words sent: ".ljust(30) + words.length.to_s.rjust(5)
-	puts "Total stickers sent: ".ljust(30) + stickers.to_s.rjust(5)
-	puts "Total images sent: ".ljust(30) + images.to_s.rjust(5)
-	puts "Total text messages sent: ".ljust(30) + chat_txt.to_s.rjust(5)
-	puts "Total messages sent: ".ljust(30) + msg_amt.to_s.rjust(5)
-	
-	puts "\n********************* Stats pr. User *********************\n"
-	#For each user
-	res.each_key do |user|
-		# Print User stats
-		puts "\n--------------------- " + user + " ---------------------\n"
-		puts user + " sent " + percent_dist[user].round.to_s + "\% of all messages (" + res[user][:msg_stats][:tot_nr].to_s + "/" + msg_amt.to_s + ")"
-		puts "++++++++++++ Word stats ++++++++++++"
-		puts "Unique words: ".ljust(25) + res[user][:word_stats][:uniq].to_s.rjust(10)
-		puts "Most used words: ".ljust(25) + res[user][:word_stats][:most].first(10).join(", ").rjust(10)
-		puts "Were used ".ljust(28) + res[user][:word_stats][:most_nr].to_s + " times"
-		puts "Words used only once:"
-		puts res[user][:word_stats][:least].first(10).join(", ")
-		puts "\n++++++++++++ Message stats ++++++++++++"
-		puts "Stamps: ".ljust(10) + res[user][:msg_stats][:stamp_nr].to_s.rjust(5)
-		puts "Photos: ".ljust(10) + res[user][:msg_stats][:photo_nr].to_s.rjust(5)
-		puts "Text: ".ljust(10) + res[user][:msg_stats][:text_nr].to_s.rjust(5)
-		puts "Total: ".ljust(10) + (res[user][:msg_stats][:stamp_nr] + res[user][:msg_stats][:photo_nr] + res[user][:msg_stats][:text_nr]).to_s.rjust(5) + "\n"
-		puts "\n++++++++++++ Reply Time stats ++++++++++++\n"
-		puts "Average reply time (msg w/ ?)".ljust(40) + get_string_time(avg_reply_time[user]).rjust(5)
-		puts ("Average reply time (rs %dhr)" % wihtin_hr).ljust(40) + get_string_time(avg_short_reply_time[user]).rjust(5)
-		puts "Average reply time (no rs)".ljust(40) + get_string_time(avg_dumb_reply_time[user]).rjust(5)
+	if show
+		printout(word, stickers, images, chat_txt, msg_amt, res, percent_dist, avg_reply_time, avg_short_reply_time, avg_dumb_reply_time, within_hr)
 	end
+end
+
+def analyze(filecontents, within_hr=6, show=true)
+	chat=Array.new()
+	date=""
+	# Jump to beginning of history
+	filecontents.shift(3)
+	for line in filecontents
+		# Get date
+		if line.start_with?('201')
+			date_raw = line.chomp()
+			#puts "Date: "+date_raw
+			date = date_raw.match(DATE_FORMAT) { |m| DATE_STR.new(*m.captures) }
+
+		#Multiline support handling
+		elsif not line.start_with?(/\d{1,2}:\d{2}/) and not /\S/ !~ line
+			chat[-1].LINE.msg += "\n"+line.chomp()
+
+		# Extract data
+		elsif not /\S/ !~ line
+			tmp = ChatEntr.new(extract(line), date)
+			chat.push(tmp)
+		end
+	end
+
+	analyze_lines(chat, within_hr, show)
 end
 
 
@@ -326,34 +356,11 @@ DATE_FORMAT = /(\d{4})\/(\d{2})\/(\d{2})\((\w{3})\)/
 
 ChatEntr = Struct.new(:LINE, :date)
 
-if ARGV.length  < 1
-	puts "Usage: analyze.rb <full_path_chat_file>"
-else
-	for arg in ARGV
-		chat=Array.new()
-		date=""
-		filecontents = readfile(arg)
-		# Jump to beginning of history
-		filecontents.shift(3)
-		for line in filecontents
-			# Get date
-			if line.start_with?('201')
-				date_raw = line.chomp()
-				#puts "Date: "+date_raw
-				date = date_raw.match(DATE_FORMAT) { |m| DATE_STR.new(*m.captures) }
-
-			#Multiline support handling
-			elsif not line.start_with?(/\d{1,2}:\d{2}/) and not /\S/ !~ line
-				chat[-1].LINE.msg += "\n"+line.chomp()
-
-			# Extract data
-			elsif not /\S/ !~ line
-				tmp = ChatEntr.new(extract(line), date)
-				chat.push(tmp)
-			end
-		end
-
-		analyze_lines(chat)
-
-	end
-end
+#if ARGV.length  < 1
+#	puts "Usage: analyze.rb <full_path_chat_file>"
+#else
+#	for file in ARGV
+#		filecontents = readfile(file)
+#		analyze(filecontents)
+#	end
+#end
