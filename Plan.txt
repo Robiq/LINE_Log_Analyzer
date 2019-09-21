@@ -22,8 +22,8 @@ Done
 	 Implementation + dateobjects
  Find general response time (dumb = just calculate)
  Find response time for intervals < 12h
+ Troubleshoot
+ Make "pretty" cli printout
 
 TODO
- Troubleshoot
- Make pretty cli printout
  Web interface / presentation
