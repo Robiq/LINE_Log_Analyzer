@@ -23,6 +23,8 @@ def extract(line)
 		parse_line.type = "p"
 	elsif parse_line.msg == "[Sticker]"
 		parse_line.type = "s"
+	elsif parse_line.msg == "[Video]"
+		parse_line.type = "v"
 	end
 
 	return parse_line
@@ -111,7 +113,7 @@ def analyze_pr_sender(data)
 	# Go through all messages per sender 
 	data.each_key do |user|
 		wordlist = {}
-		res[user] = {msg_stats: {text_nr:0, stamp_nr:0, photo_nr:0, tot_nr:0}, word_stats: {uniq:0, most:[], most_nr:0, least:[], sorted:nil}, reply_time:nil}
+		res[user] = {msg_stats: {text_nr:0, stamp_nr:0, photo_nr:0, vid_nr:0, tot_nr:0}, word_stats: {uniq:0, most:[], most_nr:0, least:[], sorted:nil}, reply_time:nil}
 		
 		# Go through messages for current sender
 		data[user].each do |msg_data|
@@ -124,6 +126,8 @@ def analyze_pr_sender(data)
 				res[user][:msg_stats][:photo_nr] += 1
 			elsif msg_data[:type] == "s"
 				res[user][:msg_stats][:stamp_nr] += 1
+			elsif msg_data[:type] == "v"
+				res[user][:msg_stats][:vid_nr] += 1
 			else
 				res[user][:msg_stats][:text_nr] += 1
 			end
@@ -151,24 +155,30 @@ def get_reply_time(reply_time, q_time)
 	return diff
 end
 
-def analyze_reply_time(avg_time, new_reply_time)
+def add_reply_time(object, reply_time)
 	#find response time for first reply
-	if avg_time == nil
-		return new_reply_time
+	if object == nil
+		return {time: reply_time, num: 1.0}
 	end
+	object[:time] = object[:time] + reply_time
+	object[:num] += 1
+	return object
+end
 
-	# Average time in seconds
-	avg_time_new = (avg_time + new_reply_time) / 2
-	#puts "Old avg: " + avg_time.to_s
-	#puts "New avg: " + avg_time_new.to_s
-	return avg_time_new
+def analyze_reply_time(object)
+	# Return average
+	return (object[:time] / object[:num])
 end
 
 def get_string_time(int_time)
-	#lol
 	str = ""
-	if int_time / (60*60*24)>0
-		str += "Day(s): " + (int_time / (60*60*24)).to_s
+
+	if int_time == -1
+		return "No data !"
+	end
+
+	if ((int_time / (60*60*24)).round)>0
+		str += "Day(s): " + ((int_time / (60*60*24)).round).to_s
 	end
 	str += " Time "
 	
@@ -178,11 +188,17 @@ def get_string_time(int_time)
 	return str
 end
 
-def printout(words, stickers, images, chat_txt, msg_amt, res, percent_dist, avg_reply_time, avg_short_reply_time, avg_dumb_reply_time, wihtin_hr)
+def printout(words, stickers, images, videos, chat_txt, msg_amt, res, percent_dist, reply_time_res, wihtin_hr, questions_asked)
+	tot_q = 0
+	questions_asked.each_key do |asked|
+		tot_q += questions_asked[asked]
+	end
 	puts "********************* Conversation stats *********************"
+	puts "Total questions asked: ".ljust(30) + tot_q.to_s.rjust(5)
 	puts "Total unique words sent: ".ljust(30) + words.length.to_s.rjust(5)
 	puts "Total stickers sent: ".ljust(30) + stickers.to_s.rjust(5)
 	puts "Total images sent: ".ljust(30) + images.to_s.rjust(5)
+	puts "Total videos sent: ".ljust(30) + videos.to_s.rjust(5)
 	puts "Total text messages sent: ".ljust(30) + chat_txt.to_s.rjust(5)
 	puts "Total messages sent: ".ljust(30) + msg_amt.to_s.rjust(5)
 	
@@ -193,6 +209,7 @@ def printout(words, stickers, images, chat_txt, msg_amt, res, percent_dist, avg_
 		puts "\n--------------------- " + user + " ---------------------\n"
 		puts user + " sent " + percent_dist[user].round.to_s + "\% of all messages (" + res[user][:msg_stats][:tot_nr].to_s + "/" + msg_amt.to_s + ")"
 		puts "++++++++++++ Word stats ++++++++++++"
+		puts "Questions asked".ljust(40) + questions_asked[user].to_s
 		puts "Unique words: ".ljust(25) + res[user][:word_stats][:uniq].to_s.rjust(10)
 		puts "Most used words: ".ljust(25) + res[user][:word_stats][:most].first(10).join(", ").rjust(10)
 		puts "Were used ".ljust(28) + res[user][:word_stats][:most_nr].to_s + " times"
@@ -201,12 +218,13 @@ def printout(words, stickers, images, chat_txt, msg_amt, res, percent_dist, avg_
 		puts "\n++++++++++++ Message stats ++++++++++++"
 		puts "Stamps: ".ljust(10) + res[user][:msg_stats][:stamp_nr].to_s.rjust(5)
 		puts "Photos: ".ljust(10) + res[user][:msg_stats][:photo_nr].to_s.rjust(5)
+		puts "Videos: ".ljust(10) + res[user][:msg_stats][:vid_nr].to_s.rjust(5)
 		puts "Text: ".ljust(10) + res[user][:msg_stats][:text_nr].to_s.rjust(5)
 		puts "Total: ".ljust(10) + (res[user][:msg_stats][:stamp_nr] + res[user][:msg_stats][:photo_nr] + res[user][:msg_stats][:text_nr]).to_s.rjust(5) + "\n"
 		puts "\n++++++++++++ Reply Time stats ++++++++++++\n"
-		puts "Average reply time (msg w/ ?)".ljust(40) + get_string_time(avg_reply_time[user]).rjust(5)
-		puts ("Average reply time (rs %dhr)" % wihtin_hr).ljust(40) + get_string_time(avg_short_reply_time[user]).rjust(5)
-		puts "Average reply time (no rs)".ljust(40) + get_string_time(avg_dumb_reply_time[user]).rjust(5)
+		puts "Average reply time (msg w/ ?)".ljust(40) + get_string_time(reply_time_res[user][:norm]).rjust(5)
+		puts "Average reply time (no rs)".ljust(40) + get_string_time(reply_time_res[user][:dumb]).rjust(5)
+		puts ("Average reply time (rs %dhr)" % wihtin_hr).ljust(40) + get_string_time(reply_time_res[user][:short]).rjust(5)
 	end
 end
 
@@ -216,11 +234,15 @@ def analyze_lines(chat, within_hr=6, show=true)
 	sender_message = Hash.new()
 	stickers = 0
 	images = 0
+	videos = 0
 	chat_txt = 0
 	prev_sender = nil
 	# DateTime objects
 	prev_msgtime_dumb = nil
 	prev_msgtime_short = nil
+	# Reply times
+	reply_time_res = {}
+	questions_asked = {}
 	avg_reply_time = {}
 	avg_dumb_reply_time = {}
 	avg_short_reply_time = {}
@@ -248,6 +270,8 @@ def analyze_lines(chat, within_hr=6, show=true)
 			stickers += 1
 		elsif ent.LINE.type == "p"
 			images += 1
+		elsif ent.LINE.type == "v"
+			videos += 1
 		else
 			chat_txt += 1
 		end
@@ -256,36 +280,44 @@ def analyze_lines(chat, within_hr=6, show=true)
 		# Find reply time for current question and new average
 		if question != nil and question.sender != sender
 			reply_time = get_reply_time(datetime, question.datetime)
-			avg_reply_time[sender] = analyze_reply_time(avg_reply_time[sender], reply_time)
+			# puts "Norm %s" % sender
+
+			avg_reply_time[sender] = add_reply_time(avg_reply_time[sender], reply_time)
 			question = nil
 		end
 
 		# Set question asked
 		if ent.LINE.msg.include? "?" and question == nil
 			question = question_struct.new(sender, datetime)
+			# Count questions asked
+			if questions_asked[sender] == nil
+				questions_asked[sender] = 1
+			else
+				questions_asked[sender] += 1
+				#puts questions_asked[sender]
+			end
 		end
 
 
 		# dumb logic
 		if prev_sender != nil && prev_sender != sender
-			#puts "\nDumb"
 			reply_time = get_reply_time(datetime, prev_msgtime_dumb)
-			avg_dumb_reply_time[sender] = analyze_reply_time(avg_dumb_reply_time[sender], reply_time)
-			
+			#puts "Dumb %s" % sender
+			avg_dumb_reply_time[sender] = add_reply_time(avg_dumb_reply_time[sender], reply_time)
+			#puts " Dumb " + sender + " - " + avg_dumb_reply_time[sender].to_s
 			#Reset timer
 			prev_msgtime_dumb = datetime
 		end
 
 		# short logic
 		if prev_sender != nil && prev_sender != sender
-			#puts "\nShort"
 			reply_time = get_reply_time(datetime, prev_msgtime_short)
-			# If reply within 12 hours
-						   #min #hr  #12 hrs
+			# If reply within X hours
+						   #min #hr  #X hrs
 			if reply_time < (60 * 60 * within_hr)
-				avg_short_reply_time[sender] = analyze_reply_time(avg_short_reply_time[sender], reply_time)
-			#else
-			#	puts "HAPPENS for: " + sender + " reply_time: " + reply_time.to_s
+				#puts "Short %s" % sender
+				avg_short_reply_time[sender] = add_reply_time(avg_short_reply_time[sender], reply_time)
+				#puts "Short "+ sender + " - " + avg_short_reply_time[sender].to_s
 			end
 
 			#Reset timer
@@ -314,21 +346,38 @@ def analyze_lines(chat, within_hr=6, show=true)
 	res.each_key do |user|
 		percent_dist[user] = ((res[user][:msg_stats][:tot_nr].to_f / msg_amt )* 100).to_f
 
+		if !avg_reply_time.has_key?(user)
+			avg_reply_time[user] = -1
+		end
+
+		if !avg_short_reply_time.has_key?(user)
+			avg_short_reply_time[user] = -1
+		end
+		if !avg_dumb_reply_time.has_key?(user)
+			avg_dumb_reply_time[user] = -1
+		end
+
+		reply_time_res[user] = {norm:0, dumb:0, short:0}
+		reply_time_res[user][:norm] = analyze_reply_time(avg_reply_time[user])
+		reply_time_res[user][:dumb] = analyze_reply_time(avg_dumb_reply_time[user])
+		reply_time_res[user][:short] = analyze_reply_time(avg_short_reply_time[user])
+
+		#puts "%s - %d" % [user, avg_reply_time[user]]
 	end
 
 	if show
-		printout(word, stickers, images, chat_txt, msg_amt, res, percent_dist, avg_reply_time, avg_short_reply_time, avg_dumb_reply_time, within_hr)
+		printout(words, stickers, images, videos, chat_txt, msg_amt, res, percent_dist, reply_time_res, within_hr, questions_asked)
 	end
 end
 
-def analyze(filecontents, within_hr=6, show=true)
+def analyze(filecontents, within_hr=12, show=true)
 	chat=Array.new()
 	date=""
 	# Jump to beginning of history
 	filecontents.shift(3)
 	for line in filecontents
 		# Get date
-		if line.start_with?('201')
+		if line.start_with?(/(\w{3}), /)
 			date_raw = line.chomp()
 			#puts "Date: "+date_raw
 			date = date_raw.match(DATE_FORMAT) { |m| DATE_STR.new(*m.captures) }
@@ -351,16 +400,18 @@ end
 LINE = Struct.new(:time, :sender, :msg, :type)
 FORMAT = /(\d{1,2}:\d{2})\s?(\w*\s?\w*)\s?(.*)/
 
-DATE_STR = Struct.new(:year, :month, :day, :weekday)
-DATE_FORMAT = /(\d{4})\/(\d{2})\/(\d{2})\((\w{3})\)/
+# Old format
+#DATE_STR = Struct.new(:year, :month, :day, :weekday)
+DATE_STR = Struct.new(:weekday, :day, :month, :year)
+DATE_FORMAT = /(\w{3}), (\d{2})\/(\d{2})\/(\d{4})/
 
 ChatEntr = Struct.new(:LINE, :date)
 
-#if ARGV.length  < 1
-#	puts "Usage: analyze.rb <full_path_chat_file>"
-#else
-#	for file in ARGV
-#		filecontents = readfile(file)
-#		analyze(filecontents)
-#	end
-#end
+if ARGV.length  < 1
+	puts "Usage: analyze.rb <full_path_chat_file>"
+else
+	for file in ARGV
+		filecontents = readfile(file)
+		analyze(filecontents, 6)
+	end
+end

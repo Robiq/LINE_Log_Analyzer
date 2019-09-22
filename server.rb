@@ -27,10 +27,18 @@ STATIC = {
 
 # TODO
 # Add logging
+# CONTENT LENGTH ALWAYS 0 ...
 
 loop do
  	session = server.accept
- 	http_method, path, protocol = session.gets.split(' ') # there are three parts to the request line
+ 	puts "%d start" % request_nr
+ 	begin
+ 		http_method, path, protocol = session.gets.split(' ') # there are three parts to the request line
+ 	rescue
+ 		puts "ERROR!"
+ 		next
+ 	end
+
  	headers = {}
   	
   	while line = session.gets.split(' ', 2)             # Collect HTTP headers
@@ -38,6 +46,12 @@ loop do
 		headers[line[0].chop] = line[1].strip             # Hash headers by type
 	end
 	
+	puts http_method
+	puts path
+	puts protocol
+	puts headers
+	puts headers["Content-Length"]
+
 	data = nil
 	status = nil
 	response_body = nil
@@ -45,7 +59,7 @@ loop do
 	if STATIC.keys.include? path
 		status = "200 OK"
 		response_body = File.read(STATIC[path])
-		puts STATIC[path].split(".")[-1]
+		#puts STATIC[path].split(".")[-1]
 		if STATIC[path].split(".")[-1] == "css"
 			type = "text/css"
 		elsif STATIC[path].split(".")[-1] == "js"
@@ -62,11 +76,11 @@ loop do
 	 
 		#Checks
 		puts "\nTests"
-		puts "."+path_parts[1]+"."
-		puts path_parts[1] == "upload"
-		puts path_parts.length == 3
-		puts "Len %d" % path_parts.length
-		puts http_method == "POST"
+		#puts "."+path_parts[1]+"."
+		#puts path_parts[1] == "upload"
+		#puts path_parts.length == 3
+		#puts "Len %d" % path_parts.length
+		#puts http_method == "POST"
 
 
 		puts "Request \# %d - Method %s - Path %s - protocol %s" % [request_nr, http_method, path, protocol]
@@ -81,7 +95,9 @@ loop do
 		elsif path_parts[1] == "upload" && path_parts.length == 3 && /^\d{1,2}$/.match(path_parts[2]) && http_method == "POST"
 			begin	    	
 				# remove url encoding
+				puts data
 				data = CGI.unescape(data)
+				puts data
 				# Handle settings
 				within_hr = path_parts[2].to_i
 				# Send to analyze
@@ -113,5 +129,6 @@ Content-Type: #{type}
 	HEREDOC
 
 	session.close
+	puts "%d done" % request_nr
 	request_nr += 1
 end

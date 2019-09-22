@@ -82,14 +82,15 @@
           <button id ="btn" onclick="submit()" class="btn btn-primary btn-lg" disabled>Submit history!</button>
         </div>
 
-      <form id="chatHistory" name="chatHistory" method="post">
-        <input type="text" id="data" hidden>
+      <form id="chatHistory" name="chatHistory" method="post" enctype="application/x-www-form-urlencoded" target="_blank">
+        <input type="hidden" id="data"/>
       </form>
     </header>
 
     <!-- Page Features -->
     <div class="row text-center">
       <div class="col-lg-3 col-md-6 mb-4">
+        <button type="button" onclick="sendData({test:'ok'})">Click Me!</button>
       </div>
     <!--
 
@@ -163,6 +164,33 @@
   <script src="static/jquery.min.js"></script>
   <script src="static/bootstrap.bundle.min.js"></script>
   <script type="text/javascript">
+    function sendData(data) {
+      var XHR = new XMLHttpRequest();
+      var FD  = new FormData();
+
+      // Push our data into our FormData object
+      for(name in data) {
+        FD.append(name, data[name]);
+      }
+
+      // Define what happens on successful data submission
+      XHR.addEventListener('load', function(event) {
+        alert('Yeah! Data sent and response loaded.');
+      });
+
+      // Define what happens in case of error
+      XHR.addEventListener('error', function(event) {
+        alert('Oops! Something went wrong.');
+      });
+
+      // Set up our request
+      XHR.open('POST', 'http://127.0.0.1:2424/upload/4');
+
+      // Send our FormData object; HTTP headers are set automatically
+      XHR.send(FD);
+    }
+  </script>
+  <script type="text/javascript">
     var slider = document.getElementById("nrslide");
     var output = document.getElementById("nr");
     output.innerText = slider.value;
@@ -178,20 +206,27 @@
       reader.readAsText(event.target.files[0])
     }
 
+    let data = ""
     function handleFileLoad(event){
       //console.log(event);
-      document.getElementById('data').textContent = event.target.result;
+      data = event.target.result;
+      document.getElementById('data').value = data;
       document.getElementById('btn').disabled = false
     }
 
     function submit(){
-      let action = document.getElementById('chatHistory').action
-      action = "/upload/"
+      //let action = document.getElementById('chatHistory').action
+      let action = "/upload/"
       //console.log(action)
       action += document.getElementById("nrslide").value
-      //console.log(action)
-      document.getElementById('chatHistory').action = action
-      document.getElementById('chatHistory').submit()
+      console.log(action)
+      //document.getElementById('chatHistory').action = action
+      $("#chatHistory").attr("action", action)
+      $("data").val(data)
+      $("form#chatHistory").submit()
+      return
+      //return document.getElementById('chatHistory').submit()
+      
     }
   </script>
 </body>

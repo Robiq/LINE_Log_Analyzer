@@ -26,6 +26,7 @@ Done
  Make "pretty" cli printout
 
 TODO
+- New chat history not working!
  - Web interface / presentation
  	- Use HAML for ruby + html integration - https://github.com/haml/haml - https://www.rubyguides.com/2018/11/ruby-erb-haml-slim/
  		- Also possible:
