@@ -209,7 +209,7 @@ def printout(words, stickers, images, videos, chat_txt, msg_amt, res, percent_di
 		puts "\n--------------------- " + user + " ---------------------\n"
 		puts user + " sent " + percent_dist[user].round.to_s + "\% of all messages (" + res[user][:msg_stats][:tot_nr].to_s + "/" + msg_amt.to_s + ")"
 		puts "++++++++++++ Word stats ++++++++++++"
-		puts "Questions asked".ljust(40) + questions_asked[user].to_s
+		puts "Questions asked".ljust(25) + questions_asked[user].to_s.rjust(10)
 		puts "Unique words: ".ljust(25) + res[user][:word_stats][:uniq].to_s.rjust(10)
 		puts "Most used words: ".ljust(25) + res[user][:word_stats][:most].first(10).join(", ").rjust(10)
 		puts "Were used ".ljust(28) + res[user][:word_stats][:most_nr].to_s + " times"
